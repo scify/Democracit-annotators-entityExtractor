@@ -7,7 +7,8 @@ import java.util.ArrayList;
 import java.util.Date;
 
 /**
- * Starts the fek entity annotation task
+ * Starts the FEK entity annotation task.
+ * This is the main class to run in order to start the execution of annotator.
  *
  * @author Christos Sardianos
  */
