@@ -1,5 +1,5 @@
 # Define the IP address of the PostgreSQL database.
-IP_ADDRESS=enter your ip here
+IP_ADDRESS=enter your ip address here
 
 # Define the IP address of the PostgreSQL database.
 USERNAME=enter your connection username here
