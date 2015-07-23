@@ -1,5 +1,6 @@
 package module.fek.annotator;
 
+import module.entities.UsernameChecker.ReportEntry;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -11,7 +12,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.TreeMap;
 
 /**
  *
@@ -73,10 +76,9 @@ public class Database {
             }
         }
     }
-    
+
     /**
-     * Retrieves the articles that haven't
-     * been yet annotated from database.
+     * Retrieves the articles that haven't been yet annotated from database.
      *
      * @throws java.sql.SQLException
      */
@@ -100,19 +102,19 @@ public class Database {
         }
         return arts4annotation;
     }
-    
+
     /**
-     * Inserts all the article annotations into DB.
-     * 
-     * @param annotatedArticles - An ArrayList<ArticleForAnnotation> with 
-     * the articles and the annotations found over them.
-     * @throws SQLException 
+     * Inserts all the article law_annotations into DB.
+     *
+     * @param annotatedArticles - An ArrayList<ArticleForAnnotation> with the
+     * articles and the annotations found over them.
+     * @throws SQLException
      */
     static void InsertArticleAnnotations(ArrayList<ArticleForAnnotation> annotatedArticles) throws SQLException {
         PreparedStatement preparedStatement = null;
         String insertAnnotationSQL = "INSERT INTO article_entities"
-                + "(article_id, start_index, end_index, url_pdf, entity_type, entity_text, consultation_id) VALUES"
-                + "(?,?,?,?,?,?,?)";
+                + "(article_id, start_index, end_index, url_pdf, entity_type, entity_text, consultation_id, entity_law) VALUES"
+                + "(?,?,?,?,?,?,?,?)";
         try {
             preparedStatement = connection.prepareStatement(insertAnnotationSQL);
             connection.setAutoCommit(false);
@@ -125,21 +127,66 @@ public class Database {
                     preparedStatement.setString(5, y.entityType);
                     preparedStatement.setString(6, y.entityText);
                     preparedStatement.setInt(7, x.consultationID);
+                    preparedStatement.setString(8, y.entityLaw);
                     preparedStatement.addBatch();
                 }
             }
             preparedStatement.executeBatch();
             connection.commit();
         } catch (SQLException e) {
+
             System.out.println(e.getMessage());
+            System.out.println(e.getNextException().getMessage());
         } finally {
-            if (preparedStatement != null) {
-                preparedStatement.close();
-            }
-            if (connection != null) {
-                connection.close();
-            }
+            preparedStatement.close();
         }
+    }
+
+    public void closeConnection() throws SQLException {
+        if (connection != null) {
+            connection.close();
+        }
+    }
+
+    public static TreeMap<Integer, String> GetOpenGovUsers() throws SQLException {
+        ResultSet rs = null;
+        TreeMap<Integer, String> opengovUsernames = new TreeMap<>();
+        Statement stmnt = null;
+        String selectArticles = "SELECT id, fullname "
+                + "FROM comment_opengov "
+                + "WHERE report_name IS NULL;";
+        stmnt = connection.createStatement();
+        rs = stmnt.executeQuery(selectArticles);
+        while (rs.next()) {
+            int userID = rs.getInt("id");
+            String username = rs.getString("fullname");
+            opengovUsernames.put(userID, username);
+        }
+        return opengovUsernames;
+    }
+
+    public static void UpdateOpengovUsersReportName(HashSet<ReportEntry> report_names) throws SQLException {
+        PreparedStatement preparedStatement = null;
+        String updateSQL = "UPDATE coment_opengov SET report_name = ?, report_type = ? WHERE id= ?";
+        try {
+            preparedStatement = connection.prepareStatement(updateSQL);
+            connection.setAutoCommit(false);
+            for (ReportEntry curEntry : report_names) {
+                preparedStatement.setString(1, curEntry.report_name);
+                preparedStatement.setInt(2, curEntry.report_name_type);
+                preparedStatement.setInt(3, curEntry.user_id);
+                preparedStatement.addBatch();
+            }
+            preparedStatement.executeBatch();
+            connection.commit();
+        } catch (SQLException e) {
+
+            System.out.println(e.getMessage());
+            System.out.println(e.getNextException().getMessage());
+        } finally {
+            preparedStatement.close();
+        }
+
     }
 
 }
