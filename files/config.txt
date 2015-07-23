@@ -1,0 +1,15 @@
+# Define the IP address of the PostgreSQL database.
+IP_ADDRESS=enter your ip address here
+
+# Define the username of the PostgreSQL database.
+USERNAME=enter your connection username here
+
+# Define the password of the PostgreSQL database.
+PASSWORD=enter your connection password here
+
+# Define your lexicon folders filepath and names
+# ALL lexicon folders MUST be inside files folder! 
+# LEXICON_FOLDER_PATH=files/dicts/finaldicts/gr
+
+# Define the language of the dictionaries (eg. gr)
+LEXICONS_LANG=gr
