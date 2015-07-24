@@ -13,10 +13,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.sql.SQLException;
+import java.text.Normalizer;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.TreeMap;
-import module.fek.annotator.Database;
 
 /**
  *
@@ -46,8 +46,8 @@ public class CheckOpengovUsernames {
             TreeMap<Integer, String> OpenGovUsernames = Database.GetOpenGovUsers();
             HashSet<ReportEntry> report_names = new HashSet<>();
             for (int userID : OpenGovUsernames.keySet()) {
-                String DBusername = OpenGovUsernames.get(userID).toUpperCase(locale);
-                String username = null;
+                String DBusername = Normalizer.normalize(OpenGovUsernames.get(userID).toUpperCase(locale), Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+                String username = "";
                 int type;
                 String[] splitUsername = DBusername.split(" ");
                 if (checkNameInLexicons(splitUsername)) {
