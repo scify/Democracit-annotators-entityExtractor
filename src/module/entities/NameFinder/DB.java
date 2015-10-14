@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+import org.json.simple.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
@@ -101,7 +102,7 @@ public class DB {
     }
 
     /**
-     * σδφσδφγ.
+     * 
      *
      * @return
      * @throws java.sql.SQLException
@@ -146,32 +147,7 @@ public class DB {
             System.err.println("Skipping:" + ex.getMessage());
         }
     }
-
-//    public static void InsertLexiconEntry(String lexiconType, String lemma, String lang) throws SQLException {
-//        String selectSQL = "SELECT id FROM lexicons_gr WHERE (lexicon_type = ? AND lexicon_lemma = ? AND lexicon_entity = ?)";
-//        PreparedStatement preparedStatement = connection.prepareStatement(selectSQL);
-//        preparedStatement.setString(1, lexiconType);
-//        preparedStatement.setString(2, lemma);
-//        preparedStatement.setString(3, entity);
-//        ResultSet rs = preparedStatement.executeQuery();
-//        String insertSQL = "INSERT INTO lexicons_gr "
-//                + "(lexicon_type,lexicon_lemma,lexicon_entity,lexicon_lang) VALUES"
-//                + "(?,?,?,?)";
-//        PreparedStatement prepStatement = connection.prepareStatement(insertSQL);
-//        int id = -1;
-//        if (rs.next()) {
-//            id = rs.getInt(1);
-////            System.out.println(id);
-//        } else {
-//            prepStatement.setString(1, lexiconType);
-//            prepStatement.setString(2, lemma);
-//            prepStatement.setString(3, entity);
-//            prepStatement.setString(4, lang);
-//            prepStatement.addBatch();
-//        }
-//        prepStatement.executeBatch();
-//        prepStatement.close();
-//    }
+    
     public static void InsertJsonLemmas(TreeMap<EntityEntry, Integer> docEntities, int text_id, int jsonKey) throws SQLException {
         String insertSQL = "INSERT INTO json_annotated_lemmas "
                 + "(lemma_text,lemma_category,lemma_text_id,lemma_jsonKey,lemma_count) VALUES"
@@ -450,5 +426,80 @@ public class DB {
             System.out.println(ex.getNextException());
         }
     }
+    
+    /**
+     * Starts the activity log
+     *
+     * @param startTime - The start time of the crawling procedure
+     * @return - The activity's log id
+     * @throws java.sql.SQLException
+     */
+    public static int LogRegexFinder(long startTime) throws SQLException {
+        String insertLogSql = "INSERT INTO log.activities (module_id, start_date, end_date, status_id, message) VALUES (?,?,?,?,?)";
+        PreparedStatement prepLogCrawlStatement = connection.prepareStatement(insertLogSql, Statement.RETURN_GENERATED_KEYS);
+        prepLogCrawlStatement.setInt(1, 4);
+        prepLogCrawlStatement.setTimestamp(2, new java.sql.Timestamp(startTime));
+        prepLogCrawlStatement.setTimestamp(3, null);
+        prepLogCrawlStatement.setInt(4, 1);
+        prepLogCrawlStatement.setString(5, null);
+        prepLogCrawlStatement.executeUpdate();
+        ResultSet rsq = prepLogCrawlStatement.getGeneratedKeys();
+        int crawlerId = 0;
+        if (rsq.next()) {
+            crawlerId = rsq.getInt(1);
+        }
+        prepLogCrawlStatement.close();
+        return crawlerId;
+    }
+    
+    
+    /**
+     * Update the activity log
+     *
+     * @param endTime
+     * @param status_id
+     * @param regexerId
+     * @param obj
+     * @throws java.sql.SQLException
+     */
+    public static void UpdateLogRegexFinder(long endTime, int regexerId, JSONObject obj) throws SQLException {
+        String updateCrawlerStatusSql = "UPDATE log.activities SET "
+                + "end_date = ?, status_id = ?, message = ?"
+                + "WHERE id = ?";
+        PreparedStatement prepUpdStatusSt = connection.prepareStatement(updateCrawlerStatusSql);
+        prepUpdStatusSt.setTimestamp(1, new java.sql.Timestamp(endTime));
+        prepUpdStatusSt.setInt(2, 2);
+        prepUpdStatusSt.setString(3, obj.toJSONString());
+        prepUpdStatusSt.setInt(4, regexerId);
+        prepUpdStatusSt.executeUpdate();
+        prepUpdStatusSt.close();
+    }
+    
+
+//    public static void InsertLexiconEntry(String lexiconType, String lemma, String lang) throws SQLException {
+//        String selectSQL = "SELECT id FROM lexicons_gr WHERE (lexicon_type = ? AND lexicon_lemma = ? AND lexicon_entity = ?)";
+//        PreparedStatement preparedStatement = connection.prepareStatement(selectSQL);
+//        preparedStatement.setString(1, lexiconType);
+//        preparedStatement.setString(2, lemma);
+//        preparedStatement.setString(3, entity);
+//        ResultSet rs = preparedStatement.executeQuery();
+//        String insertSQL = "INSERT INTO lexicons_gr "
+//                + "(lexicon_type,lexicon_lemma,lexicon_entity,lexicon_lang) VALUES"
+//                + "(?,?,?,?)";
+//        PreparedStatement prepStatement = connection.prepareStatement(insertSQL);
+//        int id = -1;
+//        if (rs.next()) {
+//            id = rs.getInt(1);
+////            System.out.println(id);
+//        } else {
+//            prepStatement.setString(1, lexiconType);
+//            prepStatement.setString(2, lemma);
+//            prepStatement.setString(3, entity);
+//            prepStatement.setString(4, lang);
+//            prepStatement.addBatch();
+//        }
+//        prepStatement.executeBatch();
+//        prepStatement.close();
+//    }
 
 }

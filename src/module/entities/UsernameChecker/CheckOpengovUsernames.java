@@ -13,10 +13,13 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.text.Normalizer;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.TreeMap;
+import org.json.simple.JSONObject;
 
 /**
  *
@@ -29,6 +32,7 @@ public class CheckOpengovUsernames {
     public static HashSet<String> names = new HashSet();
     public static HashSet<String> surnames = new HashSet();
     public static HashSet<String> organizations = new HashSet();
+    public static int usernameCheckerId;
 
     /**
      * @param args the command line arguments
@@ -36,39 +40,67 @@ public class CheckOpengovUsernames {
     public static void main(String[] args) throws SQLException, IOException {
 //        args = new String[1];
 //        args[0] = "searchConf.txt";
+        Date d = new Date();
+        long milTime = d.getTime();
+        long execStart = System.nanoTime();
+        Timestamp startTime = new Timestamp(milTime);
+        long lStartTime;
+        long lEndTime = 0;
+        int status_id = 1;
+        JSONObject obj = new JSONObject();
         if (args.length != 1) {
             System.out.println("None or too many argument parameters where defined! "
                     + "\nPlease provide ONLY the configuration file name as the only argument.");
         } else {
-            configFile = args[0];
-            initLexicons();
-            Database.init();
-            TreeMap<Integer, String> OpenGovUsernames = Database.GetOpenGovUsers();
-            HashSet<ReportEntry> report_names = new HashSet<>();
-            for (int userID : OpenGovUsernames.keySet()) {
-                String DBusername = Normalizer.normalize(OpenGovUsernames.get(userID).toUpperCase(locale), Normalizer.Form.NFD).replaceAll("\\p{M}", "");
-                String username = "";
-                int type;
-                String[] splitUsername = DBusername.split(" ");
-                if (checkNameInLexicons(splitUsername)) {
-                    for (String splText : splitUsername) {
-                        username += splText + " ";
+            try {
+                configFile = args[0];
+                initLexicons();
+                Database.init();
+                lStartTime = System.currentTimeMillis();
+                System.out.println("Opengov username identification process started at: " + startTime);
+                TreeMap<Integer, String> OpenGovUsernames = Database.GetOpenGovUsers();
+                usernameCheckerId = Database.LogUsernameChecker(lStartTime);
+                HashSet<ReportEntry> report_names = new HashSet<>();
+                for (int userID : OpenGovUsernames.keySet()) {
+                    String DBusername = Normalizer.normalize(OpenGovUsernames.get(userID).toUpperCase(locale), Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+                    String username = "";
+                    int type;
+                    String[] splitUsername = DBusername.split(" ");
+                    if (checkNameInLexicons(splitUsername)) {
+                        for (String splText : splitUsername) {
+                            username += splText + " ";
+                        }
+                        type = 1;
+                    } else if (checkOrgInLexicons(splitUsername)) {
+                        for (String splText : splitUsername) {
+                            username += splText + " ";
+                        }
+                        type = 2;
+                    } else {
+                        username = DBusername;
+                        type = -1;
                     }
-                    type = 1;
-                } else if (checkOrgInLexicons(splitUsername)) {
-                    for (String splText : splitUsername) {
-                        username += splText + " ";
-                    }
-                    type = 2;
-                } else {
-                    username = DBusername;
-                    type = -1;
+                    ReportEntry cerEntry = new ReportEntry(userID, username.trim(), type);
+                    report_names.add(cerEntry);
                 }
-                ReportEntry cerEntry= new ReportEntry(userID, username.trim(), type);
-                report_names.add(cerEntry);
+                status_id = 2;
+                obj.put("message", "Opengov username checker finished with no errors");
+                obj.put("details", "");
+                Database.UpdateOpengovUsersReportName(report_names);
+                lEndTime = System.currentTimeMillis();
+            } catch (Exception ex) {
+                System.err.println(ex.getMessage());
+                status_id = 3;
+                obj.put("message", "Opengov username checker encountered an error");
+                obj.put("details", ex.getMessage());
+                lEndTime = System.currentTimeMillis();
             }
-            Database.UpdateOpengovUsersReportName(report_names);
         }
+        long execEnd = System.nanoTime();
+        long executionTime = (execEnd - execStart);
+        System.out.println("Total process time: " + (((executionTime / 1000000) / 1000) / 60) + " minutes.");
+        Database.UpdateLogUsernameChecker(lEndTime, status_id, usernameCheckerId, obj);
+        Database.closeConnection();
     }
 
     public static boolean checkNameInLexicons(String[] splitedText) {
@@ -82,7 +114,7 @@ public class CheckOpengovUsernames {
         }
         return found;
     }
-    
+
     public static boolean checkOrgInLexicons(String[] splitedText) {
         boolean found = false;
         for (String splText : splitedText) {
@@ -126,5 +158,4 @@ public class CheckOpengovUsernames {
 //        }
 //        return found;
 //    }
-
 }

@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.TreeMap;
 import module.entities.UsernameChecker.CheckOpengovUsernames;
+import org.json.simple.JSONObject;
 
 /**
  *
@@ -144,7 +145,7 @@ public class Database {
         }
     }
 
-    public void closeConnection() throws SQLException {
+    public static void closeConnection() throws SQLException {
         if (connection != null) {
             connection.close();
         }
@@ -189,6 +190,53 @@ public class Database {
             preparedStatement.close();
         }
 
+    }
+    
+    /**
+     * Starts the activity log
+     *
+     * @param startTime - The start time of the crawling procedure
+     * @return - The activity's log id
+     * @throws java.sql.SQLException
+     */
+    public static int LogUsernameChecker(long startTime) throws SQLException {
+        String insertLogSql = "INSERT INTO log.activities (module_id, start_date, end_date, status_id, message) VALUES (?,?,?,?,?)";
+        PreparedStatement prepLogCrawlStatement = connection.prepareStatement(insertLogSql, Statement.RETURN_GENERATED_KEYS);
+        prepLogCrawlStatement.setInt(1, 5);
+        prepLogCrawlStatement.setTimestamp(2, new java.sql.Timestamp(startTime));
+        prepLogCrawlStatement.setTimestamp(3, null);
+        prepLogCrawlStatement.setInt(4, 1);
+        prepLogCrawlStatement.setString(5, null);
+        prepLogCrawlStatement.executeUpdate();
+        ResultSet rsq = prepLogCrawlStatement.getGeneratedKeys();
+        int crawlerId = 0;
+        if (rsq.next()) {
+            crawlerId = rsq.getInt(1);
+        }
+        prepLogCrawlStatement.close();
+        return crawlerId;
+    }
+    
+    /**
+     * Update the activity log
+     *
+     * @param endTime
+     * @param status_id
+     * @param usernameCheckerId
+     * @param obj
+     * @throws java.sql.SQLException
+     */
+    public static void UpdateLogUsernameChecker(long endTime, int status_id, int usernameCheckerId, JSONObject obj) throws SQLException {
+        String updateCrawlerStatusSql = "UPDATE log.activities SET "
+                + "end_date = ?, status_id = ?, message = ?"
+                + "WHERE id = ?";
+        PreparedStatement prepUpdStatusSt = connection.prepareStatement(updateCrawlerStatusSql);
+        prepUpdStatusSt.setTimestamp(1, new java.sql.Timestamp(endTime));
+        prepUpdStatusSt.setInt(2, status_id);
+        prepUpdStatusSt.setString(3, obj.toJSONString());
+        prepUpdStatusSt.setInt(4, usernameCheckerId);
+        prepUpdStatusSt.executeUpdate();
+        prepUpdStatusSt.close();
     }
 
 }

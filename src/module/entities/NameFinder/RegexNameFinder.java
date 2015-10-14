@@ -14,10 +14,12 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.text.Normalizer;
 import java.util.HashSet;
 import java.util.TreeMap;
 import java.util.Locale;
+import org.json.simple.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -25,9 +27,9 @@ import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
 
 /**
- * Retrieves the name and position of the person 
- * that have countersigned each consultation.
- * 
+ * Retrieves the name and position of the person that have countersigned each
+ * consultation.
+ *
  * @author Christos Sardianos
  */
 public class RegexNameFinder {
@@ -35,14 +37,20 @@ public class RegexNameFinder {
     public static Locale locale = new Locale("el-GR");
     public static HashSet<String> names = new HashSet();
     public static HashSet<String> surnames = new HashSet();
+    public static int regexerId;
 
     /**
      * @param args the command line arguments
      */
     public static void main(String[] args) throws SQLException, IOException {
 
+        long lStartTime = System.currentTimeMillis();
+        Timestamp startTime = new Timestamp(lStartTime);
+        System.out.println("Regex Name Finder process started at: " + startTime);
+        regexerId = DB.LogRegexFinder(lStartTime);
         initLexicons();
         DB.initPostgres();
+        JSONObject obj = new JSONObject();
         TreeMap<Integer, String> consultations = DB.getDemocracitConsultationBody();
         Document doc;
         int count = 0;
@@ -125,6 +133,12 @@ public class RegexNameFinder {
             }
         }
         DB.insertDemocracitConsultationMinister(complConsFoundNames, consFoundRoles);
+        long lEndTime = System.currentTimeMillis();
+        System.out.println("Regex Name Finder process finished at: " + startTime);
+        obj.put("message", "Regex Name Finder finished with no errors");
+        obj.put("details", "");
+        DB.UpdateLogRegexFinder(lEndTime, regexerId, obj);
+        DB.close();
     }
 
     public static void initLexicons() throws UnsupportedEncodingException, IOException {
