@@ -61,6 +61,10 @@ public class ArticlesEntityFinder {
                         status_id = 2;
                         obj.put("message", "Article entity extractor finished with no errors");
                         obj.put("details", "");
+                    } else {
+                        status_id = 2;
+                        obj.put("message", "Article entity extractor finished.");
+                        obj.put("details", "No annotations found");
                     }
                 } catch (Exception ex) {
                     System.err.println(curArticle.consultationID + ":" + curArticle.articleID);

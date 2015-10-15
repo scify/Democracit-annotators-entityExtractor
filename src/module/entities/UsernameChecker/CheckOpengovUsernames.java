@@ -58,41 +58,48 @@ public class CheckOpengovUsernames {
                 Database.init();
                 lStartTime = System.currentTimeMillis();
                 System.out.println("Opengov username identification process started at: " + startTime);
-                TreeMap<Integer, String> OpenGovUsernames = Database.GetOpenGovUsers();
                 usernameCheckerId = Database.LogUsernameChecker(lStartTime);
+                TreeMap<Integer, String> OpenGovUsernames = Database.GetOpenGovUsers();
                 HashSet<ReportEntry> report_names = new HashSet<>();
-                for (int userID : OpenGovUsernames.keySet()) {
-                    String DBusername = Normalizer.normalize(OpenGovUsernames.get(userID).toUpperCase(locale), Normalizer.Form.NFD).replaceAll("\\p{M}", "");
-                    String username = "";
-                    int type;
-                    String[] splitUsername = DBusername.split(" ");
-                    if (checkNameInLexicons(splitUsername)) {
-                        for (String splText : splitUsername) {
-                            username += splText + " ";
+                if (OpenGovUsernames.size() > 0) {
+                    for (int userID : OpenGovUsernames.keySet()) {
+                        String DBusername = Normalizer.normalize(OpenGovUsernames.get(userID).toUpperCase(locale), Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+                        String username = "";
+                        int type;
+                        String[] splitUsername = DBusername.split(" ");
+                        if (checkNameInLexicons(splitUsername)) {
+                            for (String splText : splitUsername) {
+                                username += splText + " ";
+                            }
+                            type = 1;
+                        } else if (checkOrgInLexicons(splitUsername)) {
+                            for (String splText : splitUsername) {
+                                username += splText + " ";
+                            }
+                            type = 2;
+                        } else {
+                            username = DBusername;
+                            type = -1;
                         }
-                        type = 1;
-                    } else if (checkOrgInLexicons(splitUsername)) {
-                        for (String splText : splitUsername) {
-                            username += splText + " ";
-                        }
-                        type = 2;
-                    } else {
-                        username = DBusername;
-                        type = -1;
+                        ReportEntry cerEntry = new ReportEntry(userID, username.trim(), type);
+                        report_names.add(cerEntry);
                     }
-                    ReportEntry cerEntry = new ReportEntry(userID, username.trim(), type);
-                    report_names.add(cerEntry);
+                    status_id = 2;
+                    obj.put("message", "Opengov username checker finished with no errors");
+                    obj.put("details", "");
+                    Database.UpdateOpengovUsersReportName(report_names);
+                    lEndTime = System.currentTimeMillis();
+                } else {
+                    status_id = 2;
+                    obj.put("message", "Opengov username checker finished with no errors");
+                    obj.put("details", "No usernames needed to be checked");
+                    lEndTime = System.currentTimeMillis();
                 }
-                status_id = 2;
-                obj.put("message", "Opengov username checker finished with no errors");
-                obj.put("details", "");
-                Database.UpdateOpengovUsersReportName(report_names);
-                lEndTime = System.currentTimeMillis();
             } catch (Exception ex) {
                 System.err.println(ex.getMessage());
                 status_id = 3;
                 obj.put("message", "Opengov username checker encountered an error");
-                obj.put("details", ex.getMessage());
+                obj.put("details", ex.getMessage().toString());
                 lEndTime = System.currentTimeMillis();
             }
         }

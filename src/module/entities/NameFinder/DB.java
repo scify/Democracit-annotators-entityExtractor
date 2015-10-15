@@ -45,7 +45,7 @@ public class DB {
     public static void init() throws IOException {
         if (connection == null) {
             try {
-                Class.forName("com.mysql.jdbc.Driver");
+                Class.forName("org.postgresql.Driver");
             } catch (ClassNotFoundException e) {
                 System.out.println("Where is your PostgreSQL JDBC Driver? " + "Include in your library path!");
                 e.printStackTrace();

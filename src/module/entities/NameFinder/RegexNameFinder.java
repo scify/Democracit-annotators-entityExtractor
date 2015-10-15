@@ -44,12 +44,15 @@ public class RegexNameFinder {
      */
     public static void main(String[] args) throws SQLException, IOException {
 
+        if(args.length==1){
+            Config.configFile=args[0];
+        }
         long lStartTime = System.currentTimeMillis();
         Timestamp startTime = new Timestamp(lStartTime);
         System.out.println("Regex Name Finder process started at: " + startTime);
+        DB.initPostgres();
         regexerId = DB.LogRegexFinder(lStartTime);
         initLexicons();
-        DB.initPostgres();
         JSONObject obj = new JSONObject();
         TreeMap<Integer, String> consultations = DB.getDemocracitConsultationBody();
         Document doc;

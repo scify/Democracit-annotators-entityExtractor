@@ -68,6 +68,8 @@ public class Database {
                         }
                     }
                 } catch (FileNotFoundException e) {
+                    e.getMessage();
+                    System.out.println("sd");
                 }
                 // Create the connection to database
                 String DB_url = "jdbc:postgresql://" + ip_address;
@@ -173,7 +175,7 @@ public class Database {
         String updateSQL = "UPDATE comment_opengov SET report_name = ?, report_type = ? WHERE id= ?";
         try {
             preparedStatement = connection.prepareStatement(updateSQL);
-            connection.setAutoCommit(false);
+//            connection.setAutoCommit(false);
             for (ReportEntry curEntry : report_names) {
                 preparedStatement.setString(1, curEntry.report_name);
                 preparedStatement.setInt(2, curEntry.report_name_type);
@@ -181,7 +183,7 @@ public class Database {
                 preparedStatement.addBatch();
             }
             preparedStatement.executeBatch();
-            connection.commit();
+//            connection.commit();
         } catch (SQLException e) {
 
             System.out.println(e.getMessage());
